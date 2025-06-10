@@ -5,9 +5,9 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Tuanjie WebGL Player | My project</title>
   </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0;background-color: #000000;">
-    <canvas id="tuanjie-canvas" width=1920 height=1080 tabindex="-1" style="width: 1920px; height: 1080px; background: #000000"></canvas>
-    <script src="Build/WebGLBuilds.loader.js"></script>
+  <body style="text-align: center; padding: 0; border: 0; margin: 0;">
+    <canvas id="tuanjie-canvas" width=1920 height=1080 tabindex="-1" style="width: 1920px; height: 1080px; background: #231F20"></canvas>
+    <script src="Build/WebGL.loader.js"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
         // Mobile device style: fill the whole browser client area with the game canvas:
@@ -25,9 +25,9 @@
       }
 
       createTuanjieInstance(document.querySelector("#tuanjie-canvas"), {
-        dataUrl: "Build/WebGLBuilds.data",
-        frameworkUrl: "Build/WebGLBuilds.framework.js",
-        codeUrl: "Build/WebGLBuilds.wasm",
+        dataUrl: "Build/WebGL.data",
+        frameworkUrl: "Build/WebGL.framework.js",
+        codeUrl: "Build/WebGL.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "My project",

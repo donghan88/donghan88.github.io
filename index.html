@@ -1,30 +1,207 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Tuanjie WebGL Player | My project</title>
+    <title>我的主页游戏</title>
+    <style>
+      /* 页面加载样式 */
+      body {
+        text-align: center;
+        padding: 0;
+        border: 0;
+        margin: 0;
+        background: #000000;
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        overflow: hidden;
+      }
+      
+      /* 原生Loading界面样式 */
+      #native-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      
+      #native-loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loading-logo {
+        width: 120px;
+        height: 120px;
+        background: #ffffff;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        animation: pulse 2s infinite;
+      }
+      
+      .loading-logo-text {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333333;
+      }
+      
+      .loading-title {
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+      
+      .loading-subtitle {
+        color: #cccccc;
+        font-size: 16px;
+        margin-bottom: 40px;
+      }
+      
+      .loading-progress {
+        width: 300px;
+        height: 6px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      
+      .loading-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #ffffff 0%, #cccccc 100%);
+        border-radius: 3px;
+        width: 0%;
+        transition: width 0.3s ease;
+        animation: shimmer 2s infinite;
+      }
+      
+      .loading-text {
+        color: #ffffff;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+      
+      .loading-dots {
+        display: inline-block;
+        animation: dots 1.5s infinite;
+      }
+      
+      /* 游戏画布样式 */
+      #tuanjie-canvas {
+        width: 1920px;
+        height: 1080px;
+        background: #000000;
+        opacity: 0;
+        transition: opacity 0.5s ease-in;
+      }
+      
+      #tuanjie-canvas.loaded {
+        opacity: 1;
+      }
+      
+      /* 动画效果 */
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      
+      @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60%, 100% { content: '...'; }
+      }
+    </style>
   </head>
-  <body style="text-align: center; padding: 0; border: 0; margin: 0; background: #000000">
-    <canvas id="tuanjie-canvas" width=1920 height=1080 tabindex="-1" style="width: 1920px; height: 1080px; background: #000000"></canvas>
+  <body>
+    <!-- 原生Loading界面 -->
+    <div id="native-loading">
+      <div class="loading-logo">
+        <div class="loading-logo-text">主页</div>
+      </div>
+      <div class="loading-title">欢迎来到我的主页</div>
+      <div class="loading-subtitle">正在为您准备精彩内容</div>
+      <div class="loading-progress">
+        <div class="loading-progress-bar" id="native-progress-bar"></div>
+      </div>
+      <div class="loading-text">
+        正在加载游戏引擎<span class="loading-dots"></span>
+      </div>
+    </div>
+    
+    <!-- Unity游戏画布 -->
+    <canvas id="tuanjie-canvas" width=1920 height=1080 tabindex="-1"></canvas>
     <script src="Build/WebGL.loader.js"></script>
     <script>
+      // 原生Loading控制
+      let nativeProgress = 0;
+      const nativeProgressBar = document.getElementById('native-progress-bar');
+      const nativeLoading = document.getElementById('native-loading');
+      const canvas = document.querySelector('#tuanjie-canvas');
+      const loadingText = document.querySelector('.loading-text');
+      
+      // 更新原生Loading进度
+      function updateNativeProgress(progress, text) {
+        nativeProgress = Math.min(progress, 100);
+        nativeProgressBar.style.width = nativeProgress + '%';
+        if (text) {
+          loadingText.innerHTML = text + '<span class="loading-dots"></span>';
+        }
+      }
+      
+      // 隐藏原生Loading，显示Unity画布
+      function hideNativeLoading() {
+        nativeLoading.classList.add('hidden');
+        canvas.classList.add('loaded');
+        setTimeout(() => {
+          nativeLoading.style.display = 'none';
+        }, 500);
+      }
+      
+      // 移动设备适配
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
 
-        var canvas = document.querySelector("#tuanjie-canvas");
         canvas.style.width = "100%";
         canvas.style.height = "100%";
         canvas.style.position = "fixed";
 
         document.body.style.textAlign = "left";
       }
+      
+      // 模拟初始加载进度
+      updateNativeProgress(10, '正在初始化');
+      
+      setTimeout(() => {
+        updateNativeProgress(25, '正在加载资源文件');
+      }, 300);
+      
+      setTimeout(() => {
+        updateNativeProgress(40, '正在加载游戏引擎');
+      }, 600);
 
-      createTuanjieInstance(document.querySelector("#tuanjie-canvas"), {
+      // 创建Unity实例
+      createTuanjieInstance(canvas, {
         dataUrl: "Build/WebGL.data",
         frameworkUrl: "Build/WebGL.framework.js",
         codeUrl: "Build/WebGL.wasm",
@@ -34,6 +211,28 @@
         productVersion: "1.0",
         // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
+      }).then((tuanjieInstance) => {
+        // Unity引擎加载完成
+        updateNativeProgress(70, '正在启动游戏');
+        
+        setTimeout(() => {
+          updateNativeProgress(85, '正在初始化游戏场景');
+        }, 500);
+        
+        setTimeout(() => {
+          updateNativeProgress(100, '加载完成');
+          
+          // 延迟一下再隐藏Loading界面
+          setTimeout(() => {
+            hideNativeLoading();
+          }, 800);
+        }, 1000);
+        
+      }).catch((error) => {
+        // 加载失败处理
+        console.error('Unity引擎加载失败:', error);
+        loadingText.innerHTML = '加载失败，请刷新页面重试';
+        nativeProgressBar.style.background = '#ff4757';
       });
     </script>
   </body>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>冬寒的主页游戏</title>
+    <title>冬寒的主页</title>
     <style>
       /* 页面加载样式 */
       body {
@@ -134,16 +134,71 @@
     <!-- 原生Loading界面 -->
     <div id="native-loading">
       <div class="loading-logo">
-        <div class="loading-logo-text">Secret Room</div>
+        <div class="loading-logo-text">冬寒主页</div>
       </div>
-      <div class="loading-title">Welcome to my room</div>
-      <div class="loading-subtitle">正在为您准备精彩内容</div>
+      <div class="loading-title">欢迎来到我的空间</div>
+      <div class="loading-subtitle">正在为您准备精彩内容，请耐心等待片刻</div>
       <div class="loading-progress">
         <div class="loading-progress-bar" id="native-progress-bar"></div>
       </div>
       <div class="loading-text">
         正在加载游戏引擎<span class="loading-dots"></span>
       </div>
+    </div>
+    
+    <!-- 移动设备音频解锁界面 -->
+    <div id="audio-unlock-overlay" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    ">
+      <div style="
+        width: 120px;
+        height: 120px;
+        background: #ffffff;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      ">
+        <div style="
+          font-size: 24px;
+          font-weight: bold;
+          color: #333333;
+          font-family: 'Microsoft YaHei', Arial, sans-serif;
+        ">🎵</div>
+      </div>
+      <div style="
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+      ">需要您的授权才能播放音频</div>
+      <button id="start-game-btn" style="
+        padding: 15px 30px;
+        font-size: 18px;
+        background: #ffffff;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        color: #333333;
+        font-weight: bold;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        transition: transform 0.2s ease;
+      " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">点击开始游戏</button>
     </div>
     
     <!-- Unity游戏画布 -->
@@ -200,8 +255,8 @@
         updateNativeProgress(40, '正在加载游戏引擎');
       }, 600);
 
-      // 创建Unity实例
-      createTuanjieInstance(canvas, {
+      // Unity配置
+      const config = {
         dataUrl: "Build/WebGL.data",
         frameworkUrl: "Build/WebGL.framework.js",
         codeUrl: "Build/WebGL.wasm",
@@ -211,29 +266,110 @@
         productVersion: "1.0",
         // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
         // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
-      }).then((tuanjieInstance) => {
-        // Unity引擎加载完成
-        updateNativeProgress(70, '正在启动游戏');
-        
-        setTimeout(() => {
-          updateNativeProgress(85, '正在初始化游戏场景');
-        }, 500);
-        
-        setTimeout(() => {
-          updateNativeProgress(100, '加载完成');
+      };
+      
+      // 检测移动设备
+      function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      }
+      
+      // 音频解锁函数
+      function unlockAudio() {
+        return new Promise((resolve) => {
+          // 创建一个静音的音频上下文来解锁
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
           
-          // 延迟一下再隐藏Loading界面
-          setTimeout(() => {
-            hideNativeLoading();
-          }, 800);
-        }, 1000);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          gainNode.gain.value = 0; // 静音
+          
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.1);
+          
+          // 恢复音频上下文
+          if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      }
+      
+      // 开始游戏函数
+      function startGame() {
+        const audioOverlay = document.getElementById('audio-unlock-overlay');
+        audioOverlay.style.display = 'none';
         
-      }).catch((error) => {
-        // 加载失败处理
-        console.error('Unity引擎加载失败:', error);
-        loadingText.innerHTML = '加载失败，请刷新页面重试';
-        nativeProgressBar.style.background = '#ff4757';
-      });
+        // 解锁音频后创建Unity实例
+        unlockAudio().then(() => {
+          createTuanjieInstance(canvas, config).then((tuanjieInstance) => {
+            // Unity引擎加载完成
+            updateNativeProgress(70, '正在启动游戏');
+            
+            setTimeout(() => {
+              updateNativeProgress(85, '正在初始化游戏场景');
+            }, 500);
+            
+            setTimeout(() => {
+              updateNativeProgress(100, '加载完成');
+              
+              // 延迟一下再隐藏Loading界面
+              setTimeout(() => {
+                hideNativeLoading();
+              }, 800);
+            }, 1000);
+            
+          }).catch((error) => {
+            // 加载失败处理
+            console.error('Unity引擎加载失败:', error);
+            loadingText.innerHTML = '加载失败，请刷新页面重试';
+            nativeProgressBar.style.background = '#ff4757';
+          });
+        });
+      }
+      
+      // 检查是否需要显示音频解锁界面
+      if (isMobileDevice()) {
+        // 移动设备需要用户交互来解锁音频
+        const audioOverlay = document.getElementById('audio-unlock-overlay');
+        const startBtn = document.getElementById('start-game-btn');
+        
+        // 隐藏原生加载界面，显示音频解锁界面
+        hideNativeLoading();
+        audioOverlay.style.display = 'flex';
+        
+        // 绑定开始游戏按钮事件
+        startBtn.addEventListener('click', startGame);
+      } else {
+        // 桌面设备直接创建Unity实例
+        createTuanjieInstance(canvas, config).then((tuanjieInstance) => {
+          // Unity引擎加载完成
+          updateNativeProgress(70, '正在启动游戏');
+          
+          setTimeout(() => {
+            updateNativeProgress(85, '正在初始化游戏场景');
+          }, 500);
+          
+          setTimeout(() => {
+            updateNativeProgress(100, '加载完成');
+            
+            // 延迟一下再隐藏Loading界面
+            setTimeout(() => {
+              hideNativeLoading();
+            }, 800);
+          }, 1000);
+          
+        }).catch((error) => {
+          // 加载失败处理
+          console.error('Unity引擎加载失败:', error);
+          loadingText.innerHTML = '加载失败，请刷新页面重试';
+          nativeProgressBar.style.background = '#ff4757';
+        });
+      }
     </script>
   </body>
 </html>
